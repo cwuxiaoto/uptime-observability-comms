@@ -411,9 +411,41 @@
       animation: tabPulse 1.6s var(--ease) 2;
     }
 
+    .tab.locked {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab.locked .tab-lock {
+      display: inline-flex;
+      color: var(--grey-primary);
+      opacity: 0.9;
+    }
+
+    .tab.locked.active .tab-lock { color: var(--grey-dark); }
+
     @keyframes tabPulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(0, 97, 235, 0); }
       50% { box-shadow: 0 0 0 4px rgba(0, 97, 235, 0.18); }
+    }
+
+    .paid-gate {
+      margin-top: 12px;
+      max-width: 560px;
+      animation: fadeUp 0.45s var(--ease) both;
+    }
+
+    .paid-gate .alert {
+      max-width: none;
+    }
+
+    .paid-gate-note {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--grey-dark);
+      line-height: 1.5;
+      text-wrap: pretty;
     }
 
     .section-head {
@@ -865,6 +897,72 @@
       );
     }
 
+    function IconLock({ size = 12 }) {
+      return (
+        <svg className="tab-lock" width={size} height={size} viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+          <path d="M9.5 5H9V3.5a3 3 0 10-6 0V5h-.5A1.5 1.5 0 001 6.5v4A1.5 1.5 0 002.5 12h7A1.5 1.5 0 0011 10.5v-4A1.5 1.5 0 009.5 5zM4.2 3.5a1.8 1.8 0 113.6 0V5H4.2V3.5z" />
+        </svg>
+      );
+    }
+
+    const OBS_TABS = ["Dashboards", "Metrics", "Logs", "Traces", "Alerts", "Uptime", "Settings"];
+    const PAID_TABS = new Set(["Logs", "Traces"]);
+
+    function ObservabilityTabs({ active, onSelect, pulseTab, logsTracesEnabled }) {
+      return (
+        <div className="tabs" role="tablist" aria-label="Observability">
+          {OBS_TABS.map((t) => {
+            const locked = PAID_TABS.has(t) && !logsTracesEnabled;
+            const isActive = active === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`tab${isActive ? " active" : ""}${locked ? " locked" : ""}${isActive && pulseTab && t === "Uptime" ? " pulse" : ""}`}
+                onClick={() => onSelect(t)}
+              >
+                {t}
+                {locked ? <IconLock /> : null}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function PaidFeatureGate({ feature }) {
+      const label = feature === "Traces" ? "traces" : "logs";
+      return (
+        <div className="paid-gate">
+          <AlertBanner
+            type="info"
+            title={`${feature} is available with Observability`}
+            primaryAction={
+              <button className="btn btn-banner" type="button">
+                Go to resource page
+              </button>
+            }
+          >
+            To collect {label}, enable Observability on your resource. Open the resource page and opt in there.
+          </AlertBanner>
+          <p className="paid-gate-note">
+            Dashboards, Metrics, Alerts, Uptime, and Settings stay available without this opt-in.
+          </p>
+        </div>
+      );
+    }
+
+    function FreeTabPlaceholder({ tab }) {
+      return (
+        <div className="empty" style={{ paddingTop: 24 }}>
+          <h3>{tab}</h3>
+          <p style={{ color: "var(--grey-dark)" }}>Prototype placeholder for the {tab} experience.</p>
+        </div>
+      );
+    }
+
     function FishArt() {
       return (
         <svg className="fish" viewBox="0 0 220 130" aria-hidden="true">
@@ -1026,157 +1124,193 @@
       );
     }
 
-    function UptimeFirstVisit({ showBanner, onDismiss, leaving, pulseTab }) {
+    function UptimeFirstVisit({ showBanner, onDismiss, leaving, pulseTab, logsTracesEnabled }) {
+      const [activeTab, setActiveTab] = useState("Uptime");
+
       return (
         <>
           <h1 className="page-title">Observability</h1>
-          <div className="tabs">
-            {["Dashboards", "Metrics", "Logs", "Traces", "Alerts"].map((t) => (
-              <button key={t} className="tab" type="button">{t}</button>
-            ))}
-            <button className={`tab active${pulseTab ? " pulse" : ""}`} type="button">Uptime</button>
-            <button className="tab" type="button">Settings</button>
-          </div>
+          <ObservabilityTabs
+            active={activeTab}
+            onSelect={setActiveTab}
+            pulseTab={pulseTab}
+            logsTracesEnabled={logsTracesEnabled}
+          />
 
-          {showBanner && (
-            <div className="banner-slot">
-              <AlertBanner
-                type="info"
-                title="Uptime has a new home"
-                onClose={onDismiss}
-                leaving={leaving}
-              >
-                You can now find Uptime under Observability. Nothing about your existing checks or alerts has changed.
-              </AlertBanner>
-            </div>
-          )}
-
-          <div className="section-head">
-            <h2>Uptime</h2>
-            <a className="learn" href="#" onClick={(e) => e.preventDefault()}>Learn ↗</a>
-          </div>
-
-          <div className="empty" style={{ paddingTop: 16 }}>
-            <FishArt />
-            <h3>Looks like you don't have any uptime checks</h3>
-            <p>Uptime checks monitor your sites and alert you on any latency or downtime.</p>
-            <button className="btn btn-primary" type="button" style={{ height: 44, padding: "0 20px" }}>
-              Create Uptime Check
-            </button>
-          </div>
-        </>
-      );
-    }
-
-    function AfterCreateScreen({ showEdu }) {
-      return (
-        <>
-          <h1 className="page-title">Observability</h1>
-          <div className="tabs">
-            {["Dashboards", "Metrics", "Logs", "Traces", "Alerts"].map((t) => (
-              <button key={t} className="tab" type="button">{t}</button>
-            ))}
-            <button className="tab active" type="button">Uptime</button>
-            <button className="tab" type="button">Settings</button>
-          </div>
-
-          <div className="success-toast-row">
-            <IconCheck />
-            Uptime check created · Alert “api.example.com is down” is active
-          </div>
-
-          <div className="toolbar">
-            <input className="search" style={{ maxWidth: 280 }} placeholder="Search uptime checks" readOnly />
-            <button className="btn btn-primary" type="button">Create Uptime Check</button>
-          </div>
-
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Target</th>
-                <th>Status</th>
-                <th>Alert</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><a href="#" onClick={(e) => e.preventDefault()}>API health</a></td>
-                <td>https://api.example.com/health</td>
-                <td><span className="status"><span className="dot up" /> Up</span></td>
-                <td><span className="chip ok">Configured</span></td>
-              </tr>
-            </tbody>
-          </table>
-
-          {showEdu && (
-            <div className="edu-panel">
-              <AlertBanner type="info" inline title="Your uptime alert is managed alongside your other alerts in Observability.">
-                <span style={{ display: "block", marginTop: 4 }}>
-                  View it anytime in the{" "}
-                  <button className="btn btn-tertiary" type="button">Alerts</button>
-                  {" "}tab, the same place as the rest of your alert policies.
-                </span>
-              </AlertBanner>
-            </div>
-          )}
-        </>
-      );
-    }
-
-    function AfterTriggerScreen({ showEdu, onInvestigate }) {
-      return (
-        <>
-          <h1 className="page-title">Observability</h1>
-          <div className="tabs">
-            {["Dashboards", "Metrics", "Logs", "Traces"].map((t) => (
-              <button key={t} className="tab" type="button">{t}</button>
-            ))}
-            <button className="tab" type="button">Alerts</button>
-            <button className="tab active" type="button">Uptime</button>
-            <button className="tab" type="button">Settings</button>
-          </div>
-
-          <div className="section-head">
-            <h2>API health</h2>
-            <span className="chip">Alert firing</span>
-          </div>
-
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Check</th>
-                <th>Status</th>
-                <th>Last failure</th>
-                <th>Regions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><a href="#" onClick={(e) => e.preventDefault()}>API health</a></td>
-                <td><span className="status"><span className="dot down" /> Down</span></td>
-                <td>2 minutes ago · HTTP 503</td>
-                <td>NYC3, SFO3</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {showEdu && (
-            <div className="edu-panel">
-              <AlertBanner type="info" inline title="Want deeper visibility into what caused the failure?">
-                <span style={{ display: "block", marginTop: 6 }}>
-                  Use Observability to investigate related metrics and logs.
-                </span>
-                <div className="alert-actions" style={{ marginTop: 12 }}>
-                  <button className="btn btn-secondary" type="button" onClick={onInvestigate}>
-                    Investigate in Metrics
-                  </button>
-                  <button className="btn btn-tertiary" type="button" onClick={onInvestigate}>
-                    Open related Logs
-                  </button>
+          {activeTab === "Uptime" && (
+            <>
+              {showBanner && (
+                <div className="banner-slot">
+                  <AlertBanner
+                    type="info"
+                    title="Uptime has a new home"
+                    onClose={onDismiss}
+                    leaving={leaving}
+                  >
+                    You can now find Uptime under Observability. Nothing about your existing checks or alerts has changed.
+                  </AlertBanner>
                 </div>
-              </AlertBanner>
-            </div>
+              )}
+
+              <div className="section-head">
+                <h2>Uptime</h2>
+                <a className="learn" href="#" onClick={(e) => e.preventDefault()}>Learn ↗</a>
+              </div>
+
+              <div className="empty" style={{ paddingTop: 16 }}>
+                <FishArt />
+                <h3>Looks like you don't have any uptime checks</h3>
+                <p>Uptime checks monitor your sites and alert you on any latency or downtime.</p>
+                <button className="btn btn-primary" type="button" style={{ height: 44, padding: "0 20px" }}>
+                  Create Uptime Check
+                </button>
+              </div>
+            </>
+          )}
+
+          {(activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled && (
+            <PaidFeatureGate feature={activeTab} />
+          )}
+
+          {activeTab !== "Uptime" && !((activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled) && (
+            <FreeTabPlaceholder tab={activeTab} />
+          )}
+        </>
+      );
+    }
+
+    function AfterCreateScreen({ showEdu, logsTracesEnabled }) {
+      const [activeTab, setActiveTab] = useState("Uptime");
+
+      return (
+        <>
+          <h1 className="page-title">Observability</h1>
+          <ObservabilityTabs
+            active={activeTab}
+            onSelect={setActiveTab}
+            logsTracesEnabled={logsTracesEnabled}
+          />
+
+          {activeTab === "Uptime" && (
+            <>
+              <div className="success-toast-row">
+                <IconCheck />
+                Uptime check created · Alert “api.example.com is down” is active
+              </div>
+
+              <div className="toolbar">
+                <input className="search" style={{ maxWidth: 280 }} placeholder="Search uptime checks" readOnly />
+                <button className="btn btn-primary" type="button">Create Uptime Check</button>
+              </div>
+
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>Alert</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="#" onClick={(e) => e.preventDefault()}>API health</a></td>
+                    <td>https://api.example.com/health</td>
+                    <td><span className="status"><span className="dot up" /> Up</span></td>
+                    <td><span className="chip ok">Configured</span></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {showEdu && (
+                <div className="edu-panel">
+                  <AlertBanner type="info" inline title="Your uptime alert is managed alongside your other alerts in Observability.">
+                    <span style={{ display: "block", marginTop: 4 }}>
+                      View it anytime in the{" "}
+                      <button className="btn btn-tertiary" type="button" onClick={() => setActiveTab("Alerts")}>Alerts</button>
+                      {" "}tab, the same place as the rest of your alert policies.
+                    </span>
+                  </AlertBanner>
+                </div>
+              )}
+            </>
+          )}
+
+          {(activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled && (
+            <PaidFeatureGate feature={activeTab} />
+          )}
+
+          {activeTab !== "Uptime" && !((activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled) && (
+            <FreeTabPlaceholder tab={activeTab} />
+          )}
+        </>
+      );
+    }
+
+    function AfterTriggerScreen({ showEdu, logsTracesEnabled }) {
+      const [activeTab, setActiveTab] = useState("Uptime");
+
+      return (
+        <>
+          <h1 className="page-title">Observability</h1>
+          <ObservabilityTabs
+            active={activeTab}
+            onSelect={setActiveTab}
+            logsTracesEnabled={logsTracesEnabled}
+          />
+
+          {activeTab === "Uptime" && (
+            <>
+              <div className="section-head">
+                <h2>API health</h2>
+                <span className="chip">Alert firing</span>
+              </div>
+
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Check</th>
+                    <th>Status</th>
+                    <th>Last failure</th>
+                    <th>Regions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="#" onClick={(e) => e.preventDefault()}>API health</a></td>
+                    <td><span className="status"><span className="dot down" /> Down</span></td>
+                    <td>2 minutes ago · HTTP 503</td>
+                    <td>NYC3, SFO3</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {showEdu && (
+                <div className="edu-panel">
+                  <AlertBanner type="info" inline title="Want deeper visibility into what caused the failure?">
+                    <span style={{ display: "block", marginTop: 6 }}>
+                      Use Observability to investigate related metrics and logs.
+                    </span>
+                    <div className="alert-actions" style={{ marginTop: 12 }}>
+                      <button className="btn btn-secondary" type="button" onClick={() => setActiveTab("Metrics")}>
+                        Investigate in Metrics
+                      </button>
+                      <button className="btn btn-tertiary" type="button" onClick={() => setActiveTab("Logs")}>
+                        Open related Logs
+                      </button>
+                    </div>
+                  </AlertBanner>
+                </div>
+              )}
+            </>
+          )}
+
+          {(activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled && (
+            <PaidFeatureGate feature={activeTab} />
+          )}
+
+          {activeTab !== "Uptime" && !((activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled) && (
+            <FreeTabPlaceholder tab={activeTab} />
           )}
         </>
       );
@@ -1189,6 +1323,7 @@
       const [showFirstBanner, setShowFirstBanner] = useState(true);
       const [showCreateEdu, setShowCreateEdu] = useState(true);
       const [showTriggerEdu, setShowTriggerEdu] = useState(true);
+      const [logsTracesEnabled, setLogsTracesEnabled] = useState(false);
       const [leavingBefore, setLeavingBefore] = useState(false);
       const [leavingFirst, setLeavingFirst] = useState(false);
       const [redirecting, setRedirecting] = useState(false);
@@ -1276,13 +1411,16 @@
                       onDismiss={dismissFirst}
                       leaving={leavingFirst}
                       pulseTab={pulseTab}
+                      logsTracesEnabled={logsTracesEnabled}
                     />
                   )}
-                  {stage === "create" && <AfterCreateScreen showEdu={showCreateEdu} />}
+                  {stage === "create" && (
+                    <AfterCreateScreen showEdu={showCreateEdu} logsTracesEnabled={logsTracesEnabled} />
+                  )}
                   {stage === "trigger" && (
                     <AfterTriggerScreen
                       showEdu={showTriggerEdu}
-                      onInvestigate={() => goStage("trigger")}
+                      logsTracesEnabled={logsTracesEnabled}
                     />
                   )}
                 </div>
@@ -1331,8 +1469,12 @@
                 <label>Trigger education</label>
                 <input type="checkbox" checked={showTriggerEdu} onChange={(e) => setShowTriggerEdu(e.target.checked)} />
               </div>
+              <div className="tweak-row">
+                <label>Logs/Traces enabled</label>
+                <input type="checkbox" checked={logsTracesEnabled} onChange={(e) => setLogsTracesEnabled(e.target.checked)} />
+              </div>
               <p className="hint">
-                Tip: On Before GA, click “Explore Observability” to preview the At-GA redirect into the first-visit notice.
+                Tip: Leave Logs/Traces enabled off to preview the unpaid opt-in gate. Click those tabs, or use “Open related Logs” on After alert.
               </p>
             </div>
           )}
