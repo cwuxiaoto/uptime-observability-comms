@@ -433,25 +433,24 @@
     .sneak-peek {
       position: relative;
       margin: 0 -8px;
-      min-height: 480px;
-      height: calc(100vh - 280px);
-      max-height: 560px;
+      min-height: 520px;
+      height: min(560px, calc(100vh - 260px));
       border-radius: 5px;
       overflow: hidden;
       border: 1px solid var(--grey-light);
       background: var(--white);
       animation: fadeUp 0.45s var(--ease) both;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .sneak-peek-bg {
       position: absolute;
       inset: 0;
-      background-size: 112% auto;
+      background-size: cover;
       background-repeat: no-repeat;
-      background-position: center top;
-      /* Crop away duplicate Observability chrome from the screenshot */
-      transform: scale(1.02);
-      transform-origin: center top;
+      background-position: left top;
       filter: blur(2.5px);
       opacity: 0.92;
       pointer-events: none;
@@ -484,11 +483,12 @@
     }
 
     .sneak-peek-card {
-      position: absolute;
-      left: 50%;
-      top: 42%;
-      transform: translate(-50%, -50%);
-      width: min(440px, calc(100% - 40px));
+      position: relative;
+      left: auto;
+      top: auto;
+      transform: none;
+      width: min(440px, calc(100% - 48px));
+      margin-top: -12px;
       background: var(--white);
       border: 1px solid var(--purple-light);
       border-radius: var(--radius);
