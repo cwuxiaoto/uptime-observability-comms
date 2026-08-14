@@ -428,9 +428,9 @@
 
     .sneak-peek {
       position: relative;
-      margin: 0 -8px;
-      min-height: 520px;
-      height: min(560px, calc(100vh - 260px));
+      margin: 0;
+      min-height: 460px;
+      height: min(520px, calc(100vh - 250px));
       border-radius: 5px;
       overflow: hidden;
       border: 1px solid var(--grey-light);
@@ -443,30 +443,32 @@
 
     .sneak-peek-bg {
       position: absolute;
-      inset: 0;
-      background-size: cover;
+      inset: -8px;
+      background-color: #fff;
+      background-size: 100% auto;
       background-repeat: no-repeat;
       background-position: left top;
-      filter: blur(2.5px);
-      opacity: 0.92;
+      filter: blur(4px);
+      opacity: 1;
       pointer-events: none;
       user-select: none;
+      transform: scale(1.01);
+      transform-origin: top left;
     }
 
     .sneak-peek.dismissed .sneak-peek-bg {
-      filter: blur(1.2px);
-      opacity: 0.97;
+      filter: blur(2px);
     }
 
     .sneak-peek-dim {
       position: absolute;
       inset: 0;
-      background: rgba(243, 245, 249, 0.45);
+      background: rgba(255, 255, 255, 0.28);
       pointer-events: none;
     }
 
     .sneak-peek.dismissed .sneak-peek-dim {
-      background: rgba(243, 245, 249, 0.2);
+      background: rgba(255, 255, 255, 0.12);
     }
 
     .sneak-peek-card {
@@ -536,14 +538,13 @@
     }
 
     .enabled-demo {
-      margin: 0 -8px;
+      margin: 0;
       min-height: 420px;
-      height: calc(100vh - 280px);
-      max-height: 560px;
+      height: min(520px, calc(100vh - 250px));
       border-radius: 5px;
       overflow: hidden;
       border: 1px solid var(--grey-light);
-      background: var(--white) center top / cover no-repeat;
+      background: var(--white) left top / 100% auto no-repeat;
       animation: fadeUp 0.4s var(--ease) both;
     }
 
