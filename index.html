@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uptime → Observability · Customer Communication Prototype</title>
+  <style>
+    :root {
+      --blue-darkest: #003f99;
+      --blue-dark: #0061eb;
+      --blue-primary: #3387ff;
+      --blue-lightest: #f3f8ff;
+      --purple-light: #9086fa;
+      --purple-primary: #6355f8;
+      --purple-tint: #f7f6fe;
+      --green-dark: #127c43;
+      --green-primary: #0aa653;
+      --orange-primary: #f56109;
+      --orange-light: #faa06a;
+      --orange-tint: #fef8f4;
+      --red-dark: #ca0c0c;
+      --red-light: #f77878;
+      --grey-darkest: #031b4e;
+      --grey-dark: #5b6987;
+      --grey-primary: #8390af;
+      --grey-light: #e5e8ed;
+      --grey-lightest: #f3f5f9;
+      --white: #ffffff;
+      --sidebar: #031b4e;
+      --sidebar-hover: rgba(255, 255, 255, 0.06);
+      --sidebar-active: rgba(51, 135, 255, 0.18);
+      --radius: 3px;
+      --shadow-base: 0 1px 2px rgba(3, 27, 78, 0.16), 0 1px 3px rgba(3, 27, 78, 0.2);
+      --shadow-raised: 0 2px 4px rgba(3, 27, 78, 0.1), 0 4px 4px rgba(3, 27, 78, 0.16);
+      --ease: cubic-bezier(0.645, 0.045, 0.355, 1);
+      --font: "Proxima Nova", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      color: var(--grey-darkest);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #dbe8ff 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #e8e4ff 0%, transparent 50%),
+        linear-gradient(180deg, #e9eef6 0%, #dfe6f1 100%);
+    }
+
+    button, input { font-family: inherit; }
+
+    #root { min-height: 100%; }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 24px 28px;
+      gap: 16px;
+    }
+
+    /* —— Journey chrome —— */
+    .journey {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .journey-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 200px;
+    }
+
+    .journey-brand strong {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--grey-darkest);
+    }
+
+    .journey-brand span {
+      font-size: 12px;
+      color: var(--grey-dark);
+    }
+
+    .stage-rail {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(3, 27, 78, 0.08);
+      border-radius: 10px;
+      padding: 6px;
+      box-shadow: var(--shadow-base);
+    }
+
+    .stage-btn {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--grey-dark);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.25s var(--ease), color 0.25s var(--ease), transform 0.2s var(--ease);
+      white-space: nowrap;
+    }
+
+    .stage-btn:hover { background: var(--grey-lightest); color: var(--grey-darkest); }
+    .stage-btn.active {
+      background: var(--grey-darkest);
+      color: white;
+      box-shadow: var(--shadow-base);
+    }
+    .stage-btn:focus-visible { outline: 2px dotted var(--grey-dark); outline-offset: 2px; }
+
+    .stage-meta {
+      font-size: 12px;
+      color: var(--grey-dark);
+      font-weight: 500;
+      min-width: 88px;
+      text-align: right;
+    }
+
+    /* —— Console frame —— */
+    .console-shell {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    .console {
+      width: min(1280px, 100%);
+      height: min(780px, calc(100vh - 120px));
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      background: var(--white);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow:
+        0 1px 2px rgba(3, 27, 78, 0.06),
+        0 18px 48px rgba(3, 27, 78, 0.14);
+      border: 1px solid rgba(3, 27, 78, 0.08);
+      animation: consoleIn 0.45s var(--ease) both;
+    }
+
+    @keyframes consoleIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.985); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* —— Sidebar —— */
+    .sidebar {
+      background: var(--sidebar);
+      color: white;
+      padding: 16px 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow: auto;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 8px 16px;
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #7eb6ff, #0061eb 55%, #003f99);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.15);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.78);
+      cursor: default;
+      transition: background 0.2s var(--ease), color 0.2s var(--ease);
+    }
+
+    .nav-item svg { flex-shrink: 0; opacity: 0.85; }
+
+    .nav-item.active {
+      background: var(--sidebar-active);
+      color: white;
+      font-weight: 600;
+    }
+
+    .nav-item.clickable { cursor: pointer; }
+    .nav-item.clickable:hover { background: var(--sidebar-hover); color: white; }
+
+    .nav-section {
+      margin-top: 14px;
+      padding: 0 10px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.45);
+      text-transform: uppercase;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      background: #1a2f55;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 2px 6px;
+      border-radius: 3px;
+      line-height: 1.4;
+    }
+
+    /* —— Main —— */
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: var(--white);
+    }
+
+    .topbar {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--grey-light);
+      flex-shrink: 0;
+    }
+
+    .search {
+      flex: 1;
+      max-width: 420px;
+      height: 36px;
+      border: 1px solid var(--grey-light);
+      border-radius: var(--radius);
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--grey-darkest);
+      background: var(--white);
+    }
+
+    .search::placeholder { color: var(--grey-primary); }
+
+    .btn {
+      appearance: none;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.25s var(--ease), color 0.25s var(--ease), border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 36px;
+      padding: 0 14px;
+      white-space: nowrap;
+    }
+
+    .btn:focus-visible { outline: 2px dotted var(--grey-dark); outline-offset: 2px; }
+    .btn:active { transform: translateY(0.5px); }
+
+    .btn-primary { background: var(--blue-dark); color: white; }
+    .btn-primary:hover { background: var(--blue-primary); }
+    .btn-secondary {
+      background: white;
+      color: var(--blue-dark);
+      border: 2px solid var(--blue-dark);
+      height: 40px;
+      padding: 0 16px;
+    }
+    .btn-secondary:hover { background: var(--blue-dark); color: white; }
+    .btn-tertiary {
+      background: transparent;
+      color: var(--blue-dark);
+      height: auto;
+      padding: 0;
+      font-weight: 600;
+    }
+    .btn-tertiary:hover { color: var(--blue-primary); text-decoration: underline; }
+    .btn-banner {
+      background: var(--grey-darkest);
+      color: white;
+      height: 36px;
+    }
+    .btn-banner:hover { background: var(--grey-primary); }
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      background: transparent;
+      color: var(--grey-dark);
+      border-radius: var(--radius);
+    }
+    .btn-icon:hover { background: var(--grey-lightest); }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .team-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px 4px 4px;
+      border-radius: 20px;
+      border: 1px solid var(--grey-light);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--grey-darkest);
+    }
+
+    .avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #0aa653;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+    }
+
+    .ai-btn {
+      border: 1.5px solid var(--blue-dark);
+      color: var(--blue-dark);
+      background: white;
+      border-radius: 20px;
+      height: 34px;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .content {
+      flex: 1;
+      overflow: auto;
+      padding: 24px 28px 32px;
+      background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--grey-darkest);
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 20px;
+      border-bottom: 1px solid var(--grey-light);
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      appearance: none;
+      border: none;
+      background: none;
+      padding: 10px 0 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--grey-dark);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s var(--ease);
+    }
+
+    .tab:hover { color: var(--grey-darkest); }
+    .tab.active { color: var(--grey-darkest); }
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 3px;
+      background: var(--blue-dark);
+      border-radius: 2px 2px 0 0;
+    }
+    .tab.pulse::after {
+      animation: tabPulse 1.6s var(--ease) 2;
+    }
+
+    @keyframes tabPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 97, 235, 0); }
+      50% { box-shadow: 0 0 0 4px rgba(0, 97, 235, 0.18); }
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-head h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .learn {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--blue-dark);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* —— Walrus Alert —— */
+    .alert {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid;
+      max-width: 75ch;
+      position: relative;
+      animation: alertIn 0.4s var(--ease) both;
+      box-shadow: 0 1px 0 rgba(3, 27, 78, 0.03);
+    }
+
+    .alert.info {
+      background: var(--purple-tint);
+      border-color: var(--purple-light);
+    }
+
+    .alert.success {
+      background: #f4f9f6;
+      border-color: var(--green-primary);
+    }
+
+    .alert.inline {
+      border: none;
+      background: transparent;
+      padding: 0;
+      box-shadow: none;
+      max-width: none;
+    }
+
+    .alert.inline.info .alert-icon { color: var(--purple-primary); }
+
+    @keyframes alertIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .alert.leaving {
+      animation: alertOut 0.28s var(--ease) forwards;
+    }
+
+    @keyframes alertOut {
+      to { opacity: 0; transform: translateY(-4px) scale(0.98); height: 0; margin: 0; padding-top: 0; padding-bottom: 0; border-width: 0; overflow: hidden; }
+    }
+
+    .alert-icon {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      color: var(--purple-primary);
+      margin-top: 1px;
+    }
+
+    .alert.inline .alert-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    .alert-body { flex: 1; min-width: 0; }
+    .alert-title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 4px;
+      color: var(--grey-darkest);
+    }
+    .alert.inline .alert-title {
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+    .alert-text {
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--grey-darkest);
+      text-wrap: pretty;
+    }
+    .alert-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .alert-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius);
+      color: var(--grey-dark);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .alert-close:hover { background: rgba(3, 27, 78, 0.06); }
+    .alert-close:focus-visible { outline: 2px dotted var(--grey-dark); }
+
+    .banner-slot { margin-bottom: 20px; }
+
+    /* —— Empty state —— */
+    .empty {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 40px 24px 56px;
+      animation: fadeUp 0.5s var(--ease) 0.08s both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .fish {
+      width: 180px;
+      height: 110px;
+      margin-bottom: 20px;
+    }
+
+    .empty h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .empty p {
+      font-size: 14px;
+      color: var(--grey-dark);
+      max-width: 420px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+      text-wrap: pretty;
+    }
+
+    /* —— Checks table —— */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .table th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--grey-dark);
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--grey-light);
+    }
+
+    .table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--grey-light);
+      vertical-align: middle;
+    }
+
+    .table a {
+      color: var(--blue-dark);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .table a:hover { text-decoration: underline; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .dot.up { background: var(--green-primary); }
+    .dot.down { background: var(--red-dark); box-shadow: 0 0 0 4px rgba(202, 12, 12, 0.12); }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 11px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #fef5f5;
+      color: var(--red-dark);
+    }
+
+    .chip.ok {
+      background: #f4f9f6;
+      color: var(--green-dark);
+    }
+
+    /* —— Inline education card context —— */
+    .edu-panel {
+      margin-top: 20px;
+      padding: 16px 18px;
+      border: 1px solid var(--grey-light);
+      border-radius: 5px;
+      background: var(--white);
+      box-shadow: var(--shadow-base);
+      animation: fadeUp 0.45s var(--ease) both;
+    }
+
+    .edu-panel .alert { margin-top: 4px; }
+
+    .success-toast-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--green-dark);
+    }
+
+    /* —— Redirect flash —— */
+    .redirect {
+      position: absolute;
+      inset: 0;
+      background: rgba(243, 245, 249, 0.92);
+      display: grid;
+      place-items: center;
+      z-index: 5;
+      animation: fadeIn 0.25s var(--ease);
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .redirect-card {
+      background: white;
+      border-radius: 8px;
+      padding: 28px 32px;
+      box-shadow: var(--shadow-raised);
+      border: 1px solid var(--grey-light);
+      text-align: center;
+      max-width: 360px;
+    }
+
+    .redirect-card p {
+      font-size: 14px;
+      color: var(--grey-dark);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--grey-light);
+      border-top-color: var(--blue-dark);
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .main-relative { position: relative; }
+
+    /* —— Tweaks —— */
+    .tweaks-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10000;
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(3, 27, 78, 0.12);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow-raised);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--grey-darkest);
+      cursor: pointer;
+    }
+
+    .tweaks {
+      position: fixed;
+      bottom: 72px;
+      right: 20px;
+      width: 280px;
+      background: rgba(24, 28, 40, 0.96);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      padding: 16px;
+      color: #fff;
+      font-size: 13px;
+      z-index: 9999;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      animation: fadeUp 0.25s var(--ease);
+    }
+
+    .tweaks h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .tweak-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .tweak-row label { opacity: 0.75; }
+    .tweak-row select,
+    .tweak-row input[type="checkbox"] {
+      accent-color: var(--blue-primary);
+    }
+
+    .tweak-row select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 11px;
+      line-height: 1.45;
+      opacity: 0.55;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .app { padding: 12px; }
+      .console {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 640px;
+      }
+      .sidebar { display: none; }
+      .stage-btn { padding: 8px 10px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.5/babel.min.js" crossorigin></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const STAGES = [
+      { id: "before", label: "1 · Before GA", short: "Before GA" },
+      { id: "first", label: "2 · First visit", short: "First visit" },
+      { id: "create", label: "3 · After create", short: "After create" },
+      { id: "trigger", label: "4 · After alert", short: "After alert" },
+    ];
+
+    function IconHome() {
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M8 1.5 1.5 7V14.5h5V10h3v4.5h5V7L8 1.5z" />
+        </svg>
+      );
+    }
+
+    function IconChart() {
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M2 13h12v1.5H2V13zm2-2.5h1.5V6H4v4.5zm3.5 0H9V3.5H7.5v7zm3.5 0h1.5V8H11v2.5z" />
+        </svg>
+      );
+    }
+
+    function IconInfo() {
+      return (
+        <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+          <path d="M16 2C8.28 2 2 8.28 2 16s6.28 14 14 14 14-6.28 14-14S23.72 2 16 2zm0 6.2a1.8 1.8 0 110 3.6 1.8 1.8 0 010-3.6zm2.4 14.2h-4.8v-1.6h1.2v-6.4h-1.2v-1.6h3.6v8h1.2v1.6z" />
+        </svg>
+      );
+    }
+
+    function IconClose() {
+      return (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+          <path d="M14 1.4 12.6 0 7 5.6 1.4 0 0 1.4 5.6 7 0 12.6 1.4 14 7 8.4 12.6 14 14 12.6 8.4 7z" />
+        </svg>
+      );
+    }
+
+    function IconCheck() {
+      return (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <circle cx="9" cy="9" r="9" fill="#127c43" />
+          <path d="M5 9.2 7.6 11.8 13 6.4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    }
+
+    function FishArt() {
+      return (
+        <svg className="fish" viewBox="0 0 220 130" aria-hidden="true">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#3387ff" />
+              <stop offset="100%" stopColor="#0061eb" />
+            </linearGradient>
+            <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#7eb6ff" />
+              <stop offset="100%" stopColor="#3387ff" />
+            </linearGradient>
+          </defs>
+          <ellipse cx="78" cy="72" rx="48" ry="28" fill="url(#g1)" opacity="0.95" />
+          <path d="M30 72 L8 52 L14 72 L8 92 Z" fill="url(#g1)" />
+          <circle cx="100" cy="64" r="5" fill="#031b4e" />
+          <circle cx="101.5" cy="62.5" r="1.6" fill="#fff" />
+          <circle cx="118" cy="36" r="5" fill="#f56109" />
+          <path d="M118 41 Q118 55 108 62" stroke="#f56109" strokeWidth="2" fill="none" />
+          <ellipse cx="150" cy="78" rx="36" ry="20" fill="url(#g2)" opacity="0.9" />
+          <path d="M114 78 L98 64 L102 78 L98 92 Z" fill="url(#g2)" />
+          <circle cx="168" cy="72" r="4" fill="#031b4e" />
+          <circle cx="169.2" cy="70.8" r="1.3" fill="#fff" />
+          <circle cx="182" cy="48" r="4" fill="#f56109" />
+          <path d="M182 52 Q180 62 172 68" stroke="#f56109" strokeWidth="2" fill="none" />
+        </svg>
+      );
+    }
+
+    function AlertBanner({ type = "info", title, children, onClose, primaryAction, secondaryAction, inline = false, leaving = false }) {
+      return (
+        <div
+          className={`alert ${type}${inline ? " inline" : ""}${leaving ? " leaving" : ""}`}
+          role={type === "warning" || type === "error" ? "alert" : "status"}
+          aria-live="polite"
+          tabIndex={0}
+          aria-label={typeof title === "string" ? title : undefined}
+        >
+          <div className="alert-icon"><IconInfo /></div>
+          <div className="alert-body">
+            {title ? <div className="alert-title">{title}</div> : null}
+            <div className="alert-text">{children}</div>
+            {(primaryAction || secondaryAction) && (
+              <div className="alert-actions">
+                {primaryAction}
+                {secondaryAction}
+              </div>
+            )}
+          </div>
+          {onClose && (
+            <button className="alert-close" aria-label="Close" onClick={onClose} type="button">
+              <IconClose />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    function Sidebar({ activeNav, onGoObservability }) {
+      return (
+        <aside className="sidebar" aria-label="Primary">
+          <div className="logo-row">
+            <div className="logo-mark" />
+          </div>
+          <div className="nav-item"><IconHome /> Home</div>
+          <div className="nav-item"><IconChart /> Launchpad</div>
+
+          <div className="nav-section">Projects</div>
+          <div className="nav-item">default</div>
+
+          <div className="nav-section">Insights</div>
+          <div className={`nav-item${activeNav === "monitoring" ? " active" : ""}`}>
+            <IconChart /> Monitoring
+          </div>
+          <div
+            className={`nav-item${activeNav === "observability" ? " active" : ""} clickable`}
+            onClick={onGoObservability}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter") onGoObservability(); }}
+          >
+            <IconChart /> Observability
+            <span className="nav-badge">NEW</span>
+          </div>
+
+          <div className="nav-section">Compute</div>
+          <div className="nav-item">Droplets</div>
+          <div className="nav-item">Kubernetes</div>
+        </aside>
+      );
+    }
+
+    function Topbar() {
+      return (
+        <header className="topbar">
+          <input className="search" placeholder="Search by resource name or public IP (Cmd+B)" readOnly />
+          <button className="btn btn-primary" type="button">Create ▾</button>
+          <div className="topbar-right">
+            <button className="btn btn-icon" type="button" aria-label="Help">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.2A6.8 6.8 0 1014.8 8 6.81 6.81 0 008 1.2zm0 11.2a1 1 0 111-1 1 1 0 01-1 1zm1.2-3.55-.35.2V10H7.15V8.4l1.55-.85A1.35 1.35 0 008.2 5.2a1.5 1.5 0 00-1.55 1.45H5.15A2.95 2.95 0 018.2 3.75a2.8 2.8 0 011 5.1z"/></svg>
+            </button>
+            <button className="btn btn-icon" type="button" aria-label="Notifications">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 14.5a1.5 1.5 0 001.5-1.5h-3A1.5 1.5 0 008 14.5zM12.5 11V7a4.5 4.5 0 00-3.5-4.4V2a1 1 0 10-2 0v.6A4.5 4.5 0 003.5 7v4L2 12.5h12L12.5 11z"/></svg>
+            </button>
+            <div className="team-pill">
+              <span className="avatar">I2</span>
+              Insights 2 Demo Team
+            </div>
+            <button className="ai-btn" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1l1.2 3.8L13 6l-3.8 1.2L8 11l-1.2-3.8L3 6l3.8-1.2L8 1zm5 7l.7 2.1L16 11l-2.3.7L13 14l-.7-2.3L10 11l2.3-.7L13 8z"/></svg>
+              AI Assistant
+            </button>
+          </div>
+        </header>
+      );
+    }
+
+    function MonitoringScreen({ showBanner, onExplore, onDismiss, leaving }) {
+      return (
+        <>
+          <h1 className="page-title">Monitoring</h1>
+          <div className="tabs">
+            <button className="tab" type="button">Resource Alerts</button>
+            <button className="tab active" type="button">Uptime</button>
+          </div>
+
+          {showBanner && (
+            <div className="banner-slot">
+              <AlertBanner
+                type="info"
+                title="Monitoring is becoming Observability"
+                onClose={onDismiss}
+                leaving={leaving}
+                primaryAction={
+                  <button className="btn btn-banner" type="button" onClick={onExplore}>
+                    Explore Observability
+                  </button>
+                }
+              >
+                Uptime is moving to its own tab under Observability. Your existing uptime checks and alerts won’t change. Observability brings metrics, logs, traces, dashboards, and alerts together in one place.
+              </AlertBanner>
+            </div>
+          )}
+
+          <div className="section-head">
+            <h2>Uptime</h2>
+            <a className="learn" href="#" onClick={(e) => e.preventDefault()}>Learn ↗</a>
+          </div>
+
+          <div className="empty">
+            <FishArt />
+            <h3>Looks like you don't have any uptime checks</h3>
+            <p>Uptime checks monitor your sites and alert you on any latency or downtime.</p>
+            <button className="btn btn-primary" type="button" style={{ height: 44, padding: "0 20px" }}>
+              Create Uptime Check
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    function UptimeFirstVisit({ showBanner, onDismiss, leaving, pulseTab }) {
+      return (
+        <>
+          <h1 className="page-title">Observability</h1>
+          <div className="tabs">
+            {["Dashboards", "Metrics", "Logs", "Traces", "Alerts"].map((t) => (
+              <button key={t} className="tab" type="button">{t}</button>
+            ))}
+            <button className={`tab active${pulseTab ? " pulse" : ""}`} type="button">Uptime</button>
+            <button className="tab" type="button">Settings</button>
+          </div>
+
+          {showBanner && (
+            <div className="banner-slot">
+              <AlertBanner
+                type="info"
+                title="Uptime has a new home"
+                onClose={onDismiss}
+                leaving={leaving}
+              >
+                You can now find Uptime under Observability. Nothing about your existing checks or alerts has changed.
+              </AlertBanner>
+            </div>
+          )}
+
+          <div className="section-head">
+            <h2>Uptime</h2>
+            <a className="learn" href="#" onClick={(e) => e.preventDefault()}>Learn ↗</a>
+          </div>
+
+          <div className="empty" style={{ paddingTop: 16 }}>
+            <FishArt />
+            <h3>Looks like you don't have any uptime checks</h3>
+            <p>Uptime checks monitor your sites and alert you on any latency or downtime.</p>
+            <button className="btn btn-primary" type="button" style={{ height: 44, padding: "0 20px" }}>
+              Create Uptime Check
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    function AfterCreateScreen({ showEdu }) {
+      return (
+        <>
+          <h1 className="page-title">Observability</h1>
+          <div className="tabs">
+            {["Dashboards", "Metrics", "Logs", "Traces", "Alerts"].map((t) => (
+              <button key={t} className="tab" type="button">{t}</button>
+            ))}
+            <button className="tab active" type="button">Uptime</button>
+            <button className="tab" type="button">Settings</button>
+          </div>
+
+          <div className="success-toast-row">
+            <IconCheck />
+            Uptime check created · Alert “api.example.com is down” is active
+          </div>
+
+          <div className="toolbar">
+            <input className="search" style={{ maxWidth: 280 }} placeholder="Search uptime checks" readOnly />
+            <button className="btn btn-primary" type="button">Create Uptime Check</button>
+          </div>
+
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Target</th>
+                <th>Status</th>
+                <th>Alert</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><a href="#" onClick={(e) => e.preventDefault()}>API health</a></td>
+                <td>https://api.example.com/health</td>
+                <td><span className="status"><span className="dot up" /> Up</span></td>
+                <td><span className="chip ok">Configured</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          {showEdu && (
+            <div className="edu-panel">
+              <AlertBanner type="info" inline title="Your uptime alert is managed alongside your other alerts in Observability.">
+                <span style={{ display: "block", marginTop: 4 }}>
+                  View it anytime in the{" "}
+                  <button className="btn btn-tertiary" type="button">Alerts</button>
+                  {" "}tab, the same place as the rest of your alert policies.
+                </span>
+              </AlertBanner>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    function AfterTriggerScreen({ showEdu, onInvestigate }) {
+      return (
+        <>
+          <h1 className="page-title">Observability</h1>
+          <div className="tabs">
+            {["Dashboards", "Metrics", "Logs", "Traces"].map((t) => (
+              <button key={t} className="tab" type="button">{t}</button>
+            ))}
+            <button className="tab" type="button">Alerts</button>
+            <button className="tab active" type="button">Uptime</button>
+            <button className="tab" type="button">Settings</button>
+          </div>
+
+          <div className="section-head">
+            <h2>API health</h2>
+            <span className="chip">Alert firing</span>
+          </div>
+
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Check</th>
+                <th>Status</th>
+                <th>Last failure</th>
+                <th>Regions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><a href="#" onClick={(e) => e.preventDefault()}>API health</a></td>
+                <td><span className="status"><span className="dot down" /> Down</span></td>
+                <td>2 minutes ago · HTTP 503</td>
+                <td>NYC3, SFO3</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {showEdu && (
+            <div className="edu-panel">
+              <AlertBanner type="info" inline title="Want deeper visibility into what caused the failure?">
+                <span style={{ display: "block", marginTop: 6 }}>
+                  Use Observability to investigate related metrics and logs.
+                </span>
+                <div className="alert-actions" style={{ marginTop: 12 }}>
+                  <button className="btn btn-secondary" type="button" onClick={onInvestigate}>
+                    Investigate in Metrics
+                  </button>
+                  <button className="btn btn-tertiary" type="button" onClick={onInvestigate}>
+                    Open related Logs
+                  </button>
+                </div>
+              </AlertBanner>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    function App() {
+      const [stage, setStage] = useState("before");
+      const [tweaksOpen, setTweaksOpen] = useState(false);
+      const [showBeforeBanner, setShowBeforeBanner] = useState(true);
+      const [showFirstBanner, setShowFirstBanner] = useState(true);
+      const [showCreateEdu, setShowCreateEdu] = useState(true);
+      const [showTriggerEdu, setShowTriggerEdu] = useState(true);
+      const [leavingBefore, setLeavingBefore] = useState(false);
+      const [leavingFirst, setLeavingFirst] = useState(false);
+      const [redirecting, setRedirecting] = useState(false);
+      const [pulseTab, setPulseTab] = useState(false);
+      const [consoleKey, setConsoleKey] = useState(0);
+      const redirectTimer = useRef(null);
+
+      useEffect(() => () => clearTimeout(redirectTimer.current), []);
+
+      const goStage = (id, { pulse } = {}) => {
+        setStage(id);
+        setConsoleKey((k) => k + 1);
+        setPulseTab(!!pulse);
+        if (pulse) setTimeout(() => setPulseTab(false), 3200);
+      };
+
+      const exploreObservability = () => {
+        setRedirecting(true);
+        clearTimeout(redirectTimer.current);
+        redirectTimer.current = setTimeout(() => {
+          setRedirecting(false);
+          setShowFirstBanner(true);
+          goStage("first", { pulse: true });
+        }, 1100);
+      };
+
+      const dismissBefore = () => {
+        setLeavingBefore(true);
+        setTimeout(() => {
+          setShowBeforeBanner(false);
+          setLeavingBefore(false);
+        }, 260);
+      };
+
+      const dismissFirst = () => {
+        setLeavingFirst(true);
+        setTimeout(() => {
+          setShowFirstBanner(false);
+          setLeavingFirst(false);
+        }, 260);
+      };
+
+      const activeNav = stage === "before" ? "monitoring" : "observability";
+      const stageIndex = STAGES.findIndex((s) => s.id === stage);
+
+      return (
+        <div className="app">
+          <div className="journey">
+            <div className="journey-brand">
+              <strong>Customer communication journey</strong>
+              <span>Uptime migration · Observability GA</span>
+            </div>
+            <div className="stage-rail" role="tablist" aria-label="Journey stages">
+              {STAGES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`stage-btn${stage === s.id ? " active" : ""}`}
+                  onClick={() => goStage(s.id, { pulse: s.id === "first" })}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <div className="stage-meta">{stageIndex + 1} / {STAGES.length}</div>
+          </div>
+
+          <div className="console-shell">
+            <div className="console" key={consoleKey}>
+              <Sidebar activeNav={activeNav} onGoObservability={() => goStage("first", { pulse: true })} />
+              <div className="main main-relative">
+                <Topbar />
+                <div className="content">
+                  {stage === "before" && (
+                    <MonitoringScreen
+                      showBanner={showBeforeBanner}
+                      onExplore={exploreObservability}
+                      onDismiss={dismissBefore}
+                      leaving={leavingBefore}
+                    />
+                  )}
+                  {stage === "first" && (
+                    <UptimeFirstVisit
+                      showBanner={showFirstBanner}
+                      onDismiss={dismissFirst}
+                      leaving={leavingFirst}
+                      pulseTab={pulseTab}
+                    />
+                  )}
+                  {stage === "create" && <AfterCreateScreen showEdu={showCreateEdu} />}
+                  {stage === "trigger" && (
+                    <AfterTriggerScreen
+                      showEdu={showTriggerEdu}
+                      onInvestigate={() => goStage("trigger")}
+                    />
+                  )}
+                </div>
+
+                {redirecting && (
+                  <div className="redirect" aria-live="polite">
+                    <div className="redirect-card">
+                      <div className="spinner" />
+                      <strong style={{ fontSize: 16 }}>Redirecting to Observability</strong>
+                      <p>Old Monitoring / Uptime links now open Observability → Uptime.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <button className="tweaks-toggle" type="button" onClick={() => setTweaksOpen((v) => !v)}>
+            {tweaksOpen ? "Hide Tweaks" : "Tweaks"}
+          </button>
+
+          {tweaksOpen && (
+            <div className="tweaks">
+              <h4>Tweaks</h4>
+              <div className="tweak-row">
+                <label htmlFor="stage">Stage</label>
+                <select id="stage" value={stage} onChange={(e) => goStage(e.target.value, { pulse: e.target.value === "first" })}>
+                  {STAGES.map((s) => (
+                    <option key={s.id} value={s.id}>{s.short}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="tweak-row">
+                <label>Before-GA banner</label>
+                <input type="checkbox" checked={showBeforeBanner} onChange={(e) => { setShowBeforeBanner(e.target.checked); setLeavingBefore(false); }} />
+              </div>
+              <div className="tweak-row">
+                <label>First-visit banner</label>
+                <input type="checkbox" checked={showFirstBanner} onChange={(e) => { setShowFirstBanner(e.target.checked); setLeavingFirst(false); }} />
+              </div>
+              <div className="tweak-row">
+                <label>Create education</label>
+                <input type="checkbox" checked={showCreateEdu} onChange={(e) => setShowCreateEdu(e.target.checked)} />
+              </div>
+              <div className="tweak-row">
+                <label>Trigger education</label>
+                <input type="checkbox" checked={showTriggerEdu} onChange={(e) => setShowTriggerEdu(e.target.checked)} />
+              </div>
+              <p className="hint">
+                Tip: On Before GA, click “Explore Observability” to preview the At-GA redirect into the first-visit notice.
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
