@@ -377,26 +377,69 @@
 
     .page-header-row {
       display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 20px;
+      align-items: center;
+      gap: 16px;
       margin-bottom: 12px;
+      min-height: 40px;
     }
 
     .page-header-row .page-title {
       margin-bottom: 0;
       flex-shrink: 0;
-      padding-top: 4px;
+      line-height: 1.1;
+    }
+
+    .page-header-mid {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .region-select {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--grey-light);
+      border-radius: var(--radius);
+      background: var(--white);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--grey-darkest);
+      cursor: default;
+    }
+
+    .region-flag {
+      width: 18px;
+      height: 12px;
+      border-radius: 1px;
+      background:
+        linear-gradient(#b22234 0 16%, #fff 16% 32%, #b22234 32% 48%, #fff 48% 64%, #b22234 64% 80%, #fff 80% 100%);
+      box-shadow: inset 0 0 0 1px rgba(3, 27, 78, 0.12);
+      position: relative;
+    }
+
+    .region-flag::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 40%;
+      height: 54%;
+      background: #3c3b6e;
     }
 
     .title-optin {
-      flex: 1;
-      max-width: 520px;
-      min-width: 280px;
+      width: 100%;
+      max-width: 560px;
       background: var(--purple-tint);
       border: 1px solid var(--purple-light);
       border-radius: var(--radius);
-      padding: 12px 14px;
+      padding: 8px 12px;
       box-shadow: var(--shadow-base);
       animation: alertIn 0.35s var(--ease) both;
       position: relative;
@@ -406,9 +449,9 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-      max-width: 420px;
+      gap: 10px;
+      padding: 7px 10px;
+      max-width: 480px;
     }
 
     .title-optin .alert {
@@ -418,35 +461,58 @@
       box-shadow: none;
       max-width: none;
       animation: none;
-      gap: 10px;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
     }
 
     .title-optin .alert-icon {
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
+      margin-top: 0;
     }
 
     .title-optin .alert-title {
-      font-size: 15px;
-      margin-bottom: 2px;
+      font-size: 13px;
+      margin-bottom: 0;
+      display: inline;
     }
 
     .title-optin .alert-text {
-      font-size: 13px;
-      line-height: 1.45;
+      font-size: 12px;
+      line-height: 1.35;
+      display: inline;
+      color: var(--grey-dark);
+    }
+
+    .title-optin .alert-text::before {
+      content: " · ";
+      color: var(--grey-primary);
+    }
+
+    .title-optin .alert-body {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
     }
 
     .title-optin .alert-actions {
-      margin-top: 10px;
+      margin-top: 0;
+      flex-shrink: 0;
+      align-items: center;
+      gap: 8px;
     }
 
+    /* Hide verbose close X in the slim header strip; use Dismiss link instead */
     .title-optin .alert-close {
-      top: 6px;
-      right: 6px;
+      display: none;
     }
 
     .title-optin.compact strong {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--grey-darkest);
     }
@@ -458,9 +524,13 @@
     }
 
     .title-optin .btn-banner {
-      height: 32px;
-      font-size: 13px;
-      padding: 0 12px;
+      height: 28px;
+      font-size: 12px;
+      padding: 0 10px;
+    }
+
+    .title-optin .btn-tertiary {
+      font-size: 12px;
     }
 
     .sneak-peek {
@@ -1093,13 +1163,52 @@
             }
             secondaryAction={
               <button className="btn btn-tertiary" type="button" onClick={onDismiss}>
-                Keep browsing preview
+                Dismiss
               </button>
             }
           >
-            This is sample data so you can preview the {feature} experience. To collect your own {label}, enable Observability on your resource page and opt in there.
+            Sample preview. Opt in on your resource page to collect your own {label}.
           </AlertBanner>
         </div>
+      );
+    }
+
+    function RegionSelect() {
+      return (
+        <div className="region-select" aria-label="Region">
+          <span className="region-flag" aria-hidden="true" />
+          New York · NYC3
+          <span style={{ color: "var(--grey-primary)", fontSize: 10 }}>▾</span>
+        </div>
+      );
+    }
+
+    function ObservabilityPageChrome({ activeTab, onSelectTab, pulseTab, logsTracesEnabled, sneakDismissed, onSneakDismiss, children }) {
+      const showOptIn = (activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled;
+
+      return (
+        <>
+          <div className="page-header-row">
+            <h1 className="page-title">Observability</h1>
+            <div className="page-header-mid">
+              {showOptIn && (
+                <TitleOptInCard
+                  feature={activeTab}
+                  dismissed={!!sneakDismissed[activeTab]}
+                  onDismiss={() => onSneakDismiss(activeTab)}
+                />
+              )}
+            </div>
+            <RegionSelect />
+          </div>
+          <ObservabilityTabs
+            active={activeTab}
+            onSelect={onSelectTab}
+            pulseTab={pulseTab}
+            logsTracesEnabled={logsTracesEnabled}
+          />
+          {children}
+        </>
       );
     }
 
@@ -1140,32 +1249,6 @@
           <h3>{tab}</h3>
           <p style={{ color: "var(--grey-dark)" }}>Prototype placeholder for the {tab} experience.</p>
         </div>
-      );
-    }
-
-    function ObservabilityPageChrome({ activeTab, onSelectTab, pulseTab, logsTracesEnabled, sneakDismissed, onSneakDismiss, children }) {
-      const showOptIn = (activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled;
-
-      return (
-        <>
-          <div className="page-header-row">
-            <h1 className="page-title">Observability</h1>
-            {showOptIn && (
-              <TitleOptInCard
-                feature={activeTab}
-                dismissed={!!sneakDismissed[activeTab]}
-                onDismiss={() => onSneakDismiss(activeTab)}
-              />
-            )}
-          </div>
-          <ObservabilityTabs
-            active={activeTab}
-            onSelect={onSelectTab}
-            pulseTab={pulseTab}
-            logsTracesEnabled={logsTracesEnabled}
-          />
-          {children}
-        </>
       );
     }
 
@@ -1702,7 +1785,7 @@
                 </button>
               </div>
               <p className="hint">
-                Tip: Open Logs or Traces to see the opt-in card beside the Observability title, with a blurred demo underneath.
+                Tip: On Logs/Traces, the opt-in strip sits between the Observability title and the region selector.
               </p>
             </div>
           )}
