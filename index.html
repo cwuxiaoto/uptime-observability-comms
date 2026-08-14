@@ -430,22 +430,137 @@
       50% { box-shadow: 0 0 0 4px rgba(0, 97, 235, 0.18); }
     }
 
-    .paid-gate {
-      margin-top: 12px;
-      max-width: 560px;
+    .sneak-peek {
+      position: relative;
+      margin: 0 -8px;
+      min-height: 480px;
+      height: calc(100vh - 280px);
+      max-height: 560px;
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid var(--grey-light);
+      background: var(--white);
       animation: fadeUp 0.45s var(--ease) both;
     }
 
-    .paid-gate .alert {
-      max-width: none;
+    .sneak-peek-bg {
+      position: absolute;
+      inset: 0;
+      background-size: 112% auto;
+      background-repeat: no-repeat;
+      background-position: center top;
+      /* Crop away duplicate Observability chrome from the screenshot */
+      transform: scale(1.02);
+      transform-origin: center top;
+      filter: blur(2.5px);
+      opacity: 0.92;
+      pointer-events: none;
+      user-select: none;
     }
 
-    .paid-gate-note {
-      margin-top: 16px;
+    .sneak-peek.dismissed .sneak-peek-bg {
+      filter: blur(1.2px);
+      opacity: 0.97;
+    }
+
+    .sneak-peek-dim {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(243, 245, 249, 0.55) 45%,
+        rgba(243, 245, 249, 0.72) 100%
+      );
+      pointer-events: none;
+    }
+
+    .sneak-peek.dismissed .sneak-peek-dim {
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(243, 245, 249, 0.28) 100%
+      );
+    }
+
+    .sneak-peek-card {
+      position: absolute;
+      left: 50%;
+      top: 42%;
+      transform: translate(-50%, -50%);
+      width: min(440px, calc(100% - 40px));
+      background: var(--white);
+      border: 1px solid var(--purple-light);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-raised), 0 18px 40px rgba(3, 27, 78, 0.12);
+      padding: 20px 20px 18px;
+      z-index: 2;
+      animation: alertIn 0.4s var(--ease) both;
+    }
+
+    .sneak-peek-card .alert {
+      border: none;
+      background: transparent;
+      padding: 0;
+      box-shadow: none;
+      max-width: none;
+      animation: none;
+    }
+
+    .sneak-peek-card .alert-close {
+      top: 0;
+      right: 0;
+    }
+
+    .sneak-peek-preview-bar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      background: rgba(247, 246, 254, 0.96);
+      border: 1px solid var(--purple-light);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-base);
+      backdrop-filter: blur(6px);
+    }
+
+    .sneak-peek-preview-bar strong {
+      display: block;
       font-size: 13px;
+      font-weight: 600;
+      color: var(--grey-darkest);
+      margin-bottom: 2px;
+    }
+
+    .sneak-peek-preview-bar span {
+      font-size: 12px;
       color: var(--grey-dark);
-      line-height: 1.5;
+      line-height: 1.4;
       text-wrap: pretty;
+    }
+
+    .sneak-peek-preview-bar .btn {
+      flex-shrink: 0;
+      height: 32px;
+      font-size: 13px;
+    }
+
+    .enabled-demo {
+      margin: 0 -8px;
+      min-height: 420px;
+      height: calc(100vh - 280px);
+      max-height: 560px;
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid var(--grey-light);
+      background: var(--white) center top / 112% auto no-repeat;
+      animation: fadeUp 0.4s var(--ease) both;
     }
 
     .section-head {
@@ -932,29 +1047,73 @@
       );
     }
 
-    function PaidFeatureGate({ feature }) {
+    function PaidFeatureGate({ feature, dismissed, onDismiss }) {
       const label = feature === "Traces" ? "traces" : "logs";
+      const bg = feature === "Traces" ? "assets/traces-demo.png" : "assets/logs-demo.png";
+
       return (
-        <div className="paid-gate">
-          <AlertBanner
-            type="info"
-            title={`${feature} is available with Observability`}
-            primaryAction={
+        <div className={`sneak-peek${dismissed ? " dismissed" : ""}`} aria-label={`${feature} preview`}>
+          <div
+            className="sneak-peek-bg"
+            style={{ backgroundImage: `url("${bg}")` }}
+            role="img"
+            aria-label={`Sample ${feature} interface`}
+          />
+          <div className="sneak-peek-dim" />
+
+          {dismissed ? (
+            <div className="sneak-peek-preview-bar">
+              <div>
+                <strong>Preview only</strong>
+                <span>
+                  Opt in on the resource page to collect your own {label}.
+                </span>
+              </div>
               <button className="btn btn-banner" type="button">
                 Go to resource page
               </button>
-            }
-          >
-            To collect {label}, enable Observability on your resource. Open the resource page and opt in there.
-          </AlertBanner>
-          <p className="paid-gate-note">
-            Dashboards, Metrics, Alerts, Uptime, and Settings stay available without this opt-in.
-          </p>
+            </div>
+          ) : (
+            <div className="sneak-peek-card">
+              <AlertBanner
+                type="info"
+                title={`See what ${feature.toLowerCase()} look like`}
+                onClose={onDismiss}
+                primaryAction={
+                  <button className="btn btn-banner" type="button">
+                    Go to resource page
+                  </button>
+                }
+                secondaryAction={
+                  <button className="btn btn-tertiary" type="button" onClick={onDismiss}>
+                    Keep browsing preview
+                  </button>
+                }
+              >
+                This is sample data so you can preview the {feature} experience. To collect your own {label}, enable Observability on your resource page and opt in there.
+              </AlertBanner>
+            </div>
+          )}
         </div>
       );
     }
 
+    function EnabledFeatureView({ feature }) {
+      const bg = feature === "Traces" ? "assets/traces-demo.png" : "assets/logs-demo.png";
+      return (
+        <div
+          className="enabled-demo"
+          style={{ backgroundImage: `url("${bg}")` }}
+          role="img"
+          aria-label={`${feature} experience`}
+        />
+      );
+    }
+
     function FreeTabPlaceholder({ tab }) {
+      if (tab === "Logs" || tab === "Traces") {
+        return <EnabledFeatureView feature={tab} />;
+      }
       return (
         <div className="empty" style={{ paddingTop: 24 }}>
           <h3>{tab}</h3>
@@ -1124,7 +1283,7 @@
       );
     }
 
-    function UptimeFirstVisit({ showBanner, onDismiss, leaving, pulseTab, logsTracesEnabled }) {
+    function UptimeFirstVisit({ showBanner, onDismiss, leaving, pulseTab, logsTracesEnabled, sneakDismissed, onSneakDismiss }) {
       const [activeTab, setActiveTab] = useState("Uptime");
 
       return (
@@ -1169,7 +1328,11 @@
           )}
 
           {(activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled && (
-            <PaidFeatureGate feature={activeTab} />
+            <PaidFeatureGate
+              feature={activeTab}
+              dismissed={!!sneakDismissed[activeTab]}
+              onDismiss={() => onSneakDismiss(activeTab)}
+            />
           )}
 
           {activeTab !== "Uptime" && !((activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled) && (
@@ -1179,7 +1342,7 @@
       );
     }
 
-    function AfterCreateScreen({ showEdu, logsTracesEnabled }) {
+    function AfterCreateScreen({ showEdu, logsTracesEnabled, sneakDismissed, onSneakDismiss }) {
       const [activeTab, setActiveTab] = useState("Uptime");
 
       return (
@@ -1237,7 +1400,11 @@
           )}
 
           {(activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled && (
-            <PaidFeatureGate feature={activeTab} />
+            <PaidFeatureGate
+              feature={activeTab}
+              dismissed={!!sneakDismissed[activeTab]}
+              onDismiss={() => onSneakDismiss(activeTab)}
+            />
           )}
 
           {activeTab !== "Uptime" && !((activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled) && (
@@ -1247,7 +1414,7 @@
       );
     }
 
-    function AfterTriggerScreen({ showEdu, logsTracesEnabled }) {
+    function AfterTriggerScreen({ showEdu, logsTracesEnabled, sneakDismissed, onSneakDismiss }) {
       const [activeTab, setActiveTab] = useState("Uptime");
 
       return (
@@ -1306,7 +1473,11 @@
           )}
 
           {(activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled && (
-            <PaidFeatureGate feature={activeTab} />
+            <PaidFeatureGate
+              feature={activeTab}
+              dismissed={!!sneakDismissed[activeTab]}
+              onDismiss={() => onSneakDismiss(activeTab)}
+            />
           )}
 
           {activeTab !== "Uptime" && !((activeTab === "Logs" || activeTab === "Traces") && !logsTracesEnabled) && (
@@ -1324,6 +1495,7 @@
       const [showCreateEdu, setShowCreateEdu] = useState(true);
       const [showTriggerEdu, setShowTriggerEdu] = useState(true);
       const [logsTracesEnabled, setLogsTracesEnabled] = useState(false);
+      const [sneakDismissed, setSneakDismissed] = useState({ Logs: false, Traces: false });
       const [leavingBefore, setLeavingBefore] = useState(false);
       const [leavingFirst, setLeavingFirst] = useState(false);
       const [redirecting, setRedirecting] = useState(false);
@@ -1364,6 +1536,10 @@
           setShowFirstBanner(false);
           setLeavingFirst(false);
         }, 260);
+      };
+
+      const onSneakDismiss = (feature) => {
+        setSneakDismissed((prev) => ({ ...prev, [feature]: true }));
       };
 
       const activeNav = stage === "before" ? "monitoring" : "observability";
@@ -1412,15 +1588,24 @@
                       leaving={leavingFirst}
                       pulseTab={pulseTab}
                       logsTracesEnabled={logsTracesEnabled}
+                      sneakDismissed={sneakDismissed}
+                      onSneakDismiss={onSneakDismiss}
                     />
                   )}
                   {stage === "create" && (
-                    <AfterCreateScreen showEdu={showCreateEdu} logsTracesEnabled={logsTracesEnabled} />
+                    <AfterCreateScreen
+                      showEdu={showCreateEdu}
+                      logsTracesEnabled={logsTracesEnabled}
+                      sneakDismissed={sneakDismissed}
+                      onSneakDismiss={onSneakDismiss}
+                    />
                   )}
                   {stage === "trigger" && (
                     <AfterTriggerScreen
                       showEdu={showTriggerEdu}
                       logsTracesEnabled={logsTracesEnabled}
+                      sneakDismissed={sneakDismissed}
+                      onSneakDismiss={onSneakDismiss}
                     />
                   )}
                 </div>
@@ -1473,8 +1658,19 @@
                 <label>Logs/Traces enabled</label>
                 <input type="checkbox" checked={logsTracesEnabled} onChange={(e) => setLogsTracesEnabled(e.target.checked)} />
               </div>
+              <div className="tweak-row">
+                <label>Reset sneak peeks</label>
+                <button
+                  type="button"
+                  className="btn btn-tertiary"
+                  style={{ color: "#fff", textDecoration: "underline" }}
+                  onClick={() => setSneakDismissed({ Logs: false, Traces: false })}
+                >
+                  Reset
+                </button>
+              </div>
               <p className="hint">
-                Tip: Leave Logs/Traces enabled off to preview the unpaid opt-in gate. Click those tabs, or use “Open related Logs” on After alert.
+                Tip: With Logs/Traces enabled off, open those tabs to see the blurred demo sneak peek. Dismiss the card to keep browsing the preview with a top opt-in bar.
               </p>
             </div>
           )}
