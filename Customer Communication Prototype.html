@@ -1246,7 +1246,7 @@
       );
     }
 
-    function Sidebar({ activeNav, onGoObservability }) {
+    function Sidebar({ activeNav, onGoObservability, showMonitoring = true }) {
       return (
         <aside className="sidebar" aria-label="Primary">
           <div className="logo-row">
@@ -1259,9 +1259,11 @@
           <div className="nav-item">default</div>
 
           <div className="nav-section">Insights</div>
-          <div className={`nav-item${activeNav === "monitoring" ? " active" : ""}`}>
-            <IconChart /> Monitoring
-          </div>
+          {showMonitoring && (
+            <div className={`nav-item${activeNav === "monitoring" ? " active" : ""}`}>
+              <IconChart /> Monitoring
+            </div>
+          )}
           <div
             className={`nav-item${activeNav === "observability" ? " active" : ""} clickable`}
             onClick={onGoObservability}
@@ -1305,7 +1307,7 @@
       );
     }
 
-    function MonitoringScreen({ showBanner, onExplore, onDismiss, leaving }) {
+    function MonitoringScreen({ showBanner, onDismiss, leaving }) {
       return (
         <>
           <h1 className="page-title">Monitoring</h1>
@@ -1321,11 +1323,6 @@
                 title="Monitoring is becoming Observability"
                 onClose={onDismiss}
                 leaving={leaving}
-                primaryAction={
-                  <button className="btn btn-banner" type="button" onClick={onExplore}>
-                    Explore Observability
-                  </button>
-                }
               >
                 Uptime is moving to its own tab under Observability. Your existing uptime checks and alerts won’t change. Observability brings metrics, logs, traces, dashboards, and alerts together in one place.
               </AlertBanner>
@@ -1626,14 +1623,17 @@
 
           <div className="console-shell">
             <div className="console" key={consoleKey}>
-              <Sidebar activeNav={activeNav} onGoObservability={() => goStage("first", { pulse: true })} />
+              <Sidebar
+                activeNav={activeNav}
+                showMonitoring={stage === "before"}
+                onGoObservability={() => goStage("first", { pulse: true })}
+              />
               <div className="main main-relative">
                 <Topbar />
                 <div className="content">
                   {stage === "before" && (
                     <MonitoringScreen
                       showBanner={showBeforeBanner}
-                      onExplore={exploreObservability}
                       onDismiss={dismissBefore}
                       leaving={leavingBefore}
                     />
